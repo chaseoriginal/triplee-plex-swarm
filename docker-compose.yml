@@ -8,18 +8,18 @@ services:
     <<: *base
     image: lscr.io/linuxserver/plex:latest
     container_name: ${CNAME}
-    hostname: https://${IP}
+    hostname: ${IP}
     user: ${PUID}:${PGID}
     environment:
       - TZ=${TZ}
       - VERSION=docker
-      - ADVERTISE_IP=http://${IP}:32400/
+      - ADVERTISE_IP=http://${ADVERTISE_IP}:32400/
       - PLEX_CLAIM=${PLEX_CLAIM:-}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
     volumes:
-      - ${CONFIGLOC}${CNAME}/config:/config
-      - ${CONFIGLOC}${CNAME}/transcode:/transcode
+      - triplee_plex_swarm_config:/config
+      - triplee_plex_swarm_transcode:/transcode
       - /media/Multimedia:/media
       - /media/Multimedia/Music:/music
     ports:
@@ -70,7 +70,7 @@ services:
                 value: 1
       placement:
         constraints:
-          - node.labels.deployment.target.plex == true
+          - node.labels.deployment.target.triplee-plex == true
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -82,6 +82,12 @@ services:
         failure_action: continue
         monitor: 60s
         max_failure_ratio: 0.3
+
+volumes:
+  triplee_plex_swarm_config:
+    name: triplee-plex-swarm_config
+  triplee_plex_swarm_transcode:
+    name: triplee-plex-swarm_transcode
 
 networks:
   triplee-plex-swarm_default:
