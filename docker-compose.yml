@@ -1,78 +1,69 @@
-x-base: &base
-  restart: unless-stopped
-  networks:
-    - triplee-plex-swarm_default
-
+# triplee-plex-swarm — Plex Media Server ("Triple E Linux Plex") as a Swarm service.
+#
+# Reconciled 2026-10-25 to mirror the live service spec exactly, so a redeploy
+# is a no-op instead of a regression.
+#
+# Two settings are load-bearing — do not "clean them up":
+#
+# 1. VERSION=latest
+#    Enables the LinuxServer.io runtime update check against Plex channel 8
+#    (Plex Pass beta). The alternative values are both wrong:
+#      - VERSION=beta   -> the image treats it as a literal version string and
+#                          tries to download .../plex-media-server-new/beta/...
+#                          which returns HTTP 403, so the update silently fails
+#                          and PMS stays on the version baked into the image.
+#      - VERSION=docker -> skips the update check entirely and pins PMS to
+#                          whatever the image ships (public channel only).
+#    With VERSION=latest the container downloads the Plex Pass beta build
+#    (1.43.5.11079-b3b13e506) and dpkg-installs it on every start.
+#
+# 2. NO `user:` directive
+#    Non-root mode makes the image skip the runtime update entirely
+#    ("Runtime update not supported with read-only or non-root operation").
+#    The service must start as root so the s6 init can install the .deb.
+#    PUID/PGID below are passed to the image so the Plex process itself still
+#    runs as uid/gid 1000.
+#
+# GPU: the live service has NO swarm generic_resources reservation. The Quadro
+# P2000 is injected by the NVIDIA container runtime hook because of
+# NVIDIA_VISIBLE_DEVICES=all. Do not add a generic_resources NVIDIA-GPU
+# reservation — the swarm has no NVIDIA device plugin configured, so that
+# would make the deploy fail to schedule.
+#
+# Networking is host mode: the external overlay triplee-plex-swarm_default
+# does not exist on this swarm, and NPM proxies straight to the host port.
 services:
   plex:
-    <<: *base
     image: lscr.io/linuxserver/plex:latest
-    container_name: ${CNAME}
-    hostname: ${IP}
-    user: ${PUID}:${PGID}
     environment:
-      - TZ=${TZ}
-      - VERSION=docker
-      - PLEX_UID=${PUID}
-      - PLEX_GID=${PGID}
-      - ADVERTISE_IP=http://${ADVERTISE_IP}:32400/
-      - PLEX_CLAIM=${PLEX_CLAIM:-}
+      - TZ=America/Chicago
+      - PUID=1000
+      - PGID=1000
+      - PLEX_UID=1000
+      - PLEX_GID=1000
+      - ADVERTISE_IP=https://216.165.142.70:32400
+      - VERSION=latest
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
     volumes:
-      - triplee_plex_swarm_config:/config
-      - triplee_plex_swarm_transcode:/transcode
+      - triplee-plex-swarm_config:/config
+      - triplee-plex-swarm_transcode:/transcode
       - /media/Multimedia:/media
       - /media/Multimedia/Music:/music
-    ports:
-      - target: 32400
-        published: 32400
-        protocol: tcp
-        mode: host
-      - target: 1900
-        published: 1900
-        protocol: udp
-        mode: host
-      - target: 8324
-        published: 8324
-        protocol: tcp
-        mode: host
-      - target: 32469
-        published: 32469
-        protocol: tcp
-        mode: host
-      - target: 32410
-        published: 32410
-        protocol: udp
-        mode: host
-      - target: 32411
-        published: 32411
-        protocol: udp
-        mode: host
-      - target: 32412
-        published: 32412
-        protocol: udp
-        mode: host
-      - target: 32413
-        published: 32413
-        protocol: udp
-        mode: host
-      - target: 32414
-        published: 32414
-        protocol: udp
-        mode: host
+    network_mode: host
     deploy:
       mode: replicated
       replicas: 1
       resources:
+        limits:
+          cpus: "1"
+          memory: 1G
         reservations:
-          generic_resources:
-            - discrete_resource_spec:
-                kind: NVIDIA-GPU
-                value: 1
+          cpus: "0.5"
+          memory: 512M
       placement:
         constraints:
-          - node.labels.deployment.target.triplee-plex == true
+          - node.hostname==ore-dock-110-4
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -86,12 +77,7 @@ services:
         max_failure_ratio: 0.3
 
 volumes:
-  triplee_plex_swarm_config:
+  triplee-plex-swarm_config:
     name: triplee-plex-swarm_config
-  triplee_plex_swarm_transcode:
+  triplee-plex-swarm_transcode:
     name: triplee-plex-swarm_transcode
-
-networks:
-  triplee-plex-swarm_default:
-    external: true
-    name: triplee-plex-swarm_default
