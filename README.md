@@ -8,8 +8,8 @@ deployment and polls this repository for changes.
 | Portainer stack id | 8 |
 | Portainer host | ore-dock-110-4 |
 | Endpoint | - (id -) |
-| Swarm | whofnrgxv5ig |
-| Live service | triplee-plex-swarm_plex |
+| Swarm | True |
+| Live service | svc:triplee-plex-swarm_plex |
 | Git repo | https://github.com/chaseoriginal/triplee-plex-swarm |
 | Compose file | `docker-compose.yml` |
 | Auto-update poll | every 900s |
@@ -39,8 +39,8 @@ deployment and polls this repository for changes.
 ## Verifying a deployment
 
 ```bash
-docker service ls --filter name=triplee-plex-swarm_plex
-docker service inspect triplee-plex-swarm_plex --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}'
+docker service ls --filter name=svc:triplee-plex-swarm_plex
+docker service inspect svc:triplee-plex-swarm_plex --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}'
 ```
 
 A healthy stack shows `1/1` and the same volume names as before.
