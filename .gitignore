@@ -1,3 +1,11 @@
+<<<<<<< HEAD
 
 # Real environment values live in Portainer's stack Env, never in Git.
 .env
+=======
+# Real environment values live in Portainer's stack Env, never in Git.
+.env
+.env.local
+*.bak
+*.log
+>>>>>>> origin/main

@@ -1,29 +1,46 @@
 # triplee-plex-swarm
 
-Plex Media Server stack for the "TripleE" (Echo Entertainment Emporium) instance, hosted on ore-dock-110-4 Docker Swarm.
+Portainer-managed stack. **Git is the source of truth**; Portainer owns the
+deployment and polls this repository for changes.
 
-## Architecture
+| | |
+|---|---|
+| Portainer stack id | 8 |
+| Portainer host | ore-dock-110-4 |
+| Endpoint | - (id -) |
+| Swarm | True |
+| Live service | svc:triplee-plex-swarm_plex |
+| Git repo | https://github.com/chaseoriginal/triplee-plex-swarm |
+| Compose file | `docker-compose.yml` |
+| Auto-update poll | every 900s |
 
-- **Host**: ore-dock-110-4 (swarm leader) — has Quadro P2000 GPU for hardware transcoding
-- **Stack**: `triplee-plex-swarm`
-- **Service**: `plex`
-- **Image**: lscr.io/linuxserver/plex:latest
-- **Advertise URL**: http://lplex.echoinggreen.net:32400/
-- **Config volume**: `/var/lib/docker/volumes/triplee-plex-swarm/config` (LVM bind mount)
-- **Transcode volume**: `/var/lib/docker/volumes/triplee-plex-swarm/transcode` (LVM bind mount)
-- **Media**: CIFS share `//shares.echoinggreen.info/Multimedia` mounted at `/media/Multimedia`
-- **Music**: CIFS share at `/media/Multimedia/Music`
-- **Network**: `triplee-plex-swarm_default` (overlay, external)
+## Files
 
-## Hardware
+- `docker-compose.yml` - the deployed compose. It is **derived from the live
+  service spec**, not from Portainer's stored copy, so that the redeploy
+  triggered by auto-update is a no-op: the same named volumes (by exact
+  name), the same binds, and the same environment values.
 
-GPU: NVIDIA Quadro P2000 — accessed via NVIDIA Container Runtime. Hardware transcoding enabled.
+  Named volumes are declared with an explicit `name:` on purpose. Docker
+  Swarm prefixes a plain named volume with the stack name
+  (`beets-swarm` + `config` becomes `beets-swarm_config`), so declaring
+  `beets-swarm_beets.config` would mount a brand new EMPTY volume on
+  redeploy and the service would come up healthy with no data.
 
-## Volumes
+- `.env.example` - the variable names Portainer substitutes, values
+  redacted. The real values live in the Portainer stack environment and are
+  deliberately NOT committed.
 
-| Volume | Type | Source | Target |
-|--------|------|--------|--------|
-| config | bind | /var/lib/docker/volumes/triplee-plex-swarm/config | /config |
-| transcode | bind | /var/lib/docker/volumes/triplee-plex-swarm/transcode | /transcode |
-| media | bind | /media/Multimedia | /media |
-| music | bind | /media/Multimedia/Music | /music |
+## How a change is deployed
+
+1. Edit `docker-compose.yml` and push to `main`.
+2. Portainer polls the repo and redeploys automatically.
+
+## Verifying a deployment
+
+```bash
+docker service ls --filter name=svc:triplee-plex-swarm_plex
+docker service inspect svc:triplee-plex-swarm_plex --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}'
+```
+
+A healthy stack shows `1/1` and the same volume names as before.
