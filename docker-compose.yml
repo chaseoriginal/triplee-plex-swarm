@@ -1,7 +1,6 @@
 services:
   plex:
-    container_name: ${CNAME}
-    user: ${UID}:${GID}
+    container_name: triplee-plex-swarm_plex
     image: lscr.io/linuxserver/plex:latest
     ports:
     - target: 32400
@@ -43,15 +42,9 @@ services:
     deploy:
       mode: replicated
       replicas: 1
-      resources:
-        reservations:
-          generic_resources:
-          - discrete_resource_spec:
-              kind: NVIDIA-GPU
-              value: 0
       placement:
         constraints:
-        - node.labels.deployment.target.triplee-plex == true
+        - node.hostname==ore-dock-110-4
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -72,6 +65,8 @@ services:
       NVIDIA_DRIVER_CAPABILITIES: video,compute,utility
       PLEX_UID: 1000
       PLEX_GID: '1000'
+      PGID: '1000'
+      PUID: '1000'
     hostname: https://lplex.echoinggreen.net
     volumes:
     - triplee-plex-swarm_config:/config
