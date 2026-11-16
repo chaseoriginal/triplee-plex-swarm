@@ -1,7 +1,7 @@
 services:
   plex:
     container_name: triplee-plex-swarm_plex
-    image: lscr.io/linuxserver/plex:latest
+    image: lscr.io/linuxserver/plex:latest@sha256:9a1325bf0b34a50993a04be0bdcc7fab841d2a78161bd11b4db4ff8478a7ac2a
     ports:
     - target: 32400
       published: 32400
